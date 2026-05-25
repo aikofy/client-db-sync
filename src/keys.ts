@@ -29,7 +29,10 @@ export async function loadKeyPairFromEnv(
 
 /** Generate a fresh Ed25519 key pair and return base64-encoded JWK strings. */
 export async function generateKeyPairJwk(): Promise<{ privateKeyJwk: string; publicKeyJwk: string }> {
-  const { privateKey, publicKey } = await generateKeyPair('EdDSA', { crv: 'Ed25519' });
+  const { privateKey, publicKey } = await generateKeyPair('EdDSA', {
+    crv: 'Ed25519',
+    extractable: true,
+  });
 
   const privateJwk = await exportJWK(privateKey);
   const publicJwk = await exportJWK(publicKey);
