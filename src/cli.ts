@@ -27,6 +27,29 @@ function loadConfig(): ServerConfig {
     publicKeyJwk: require('PUBLIC_KEY_JWK'),
   };
 
+  // Optional: verify Consumer Client tokens against your IdP's public key(s). Without this,
+  // Consumer registrations are refused when auth is enabled (Normal-Client sync is unaffected).
+  const consumerJwks = process.env['CONSUMER_PUBLIC_KEY_JWK'];
+  if (consumerJwks) {
+    config.consumerAuth = {
+      jwks: consumerJwks,
+      issuer: process.env['CONSUMER_ISSUER'],
+      audience: process.env['CONSUMER_AUDIENCE'],
+    };
+    if (!process.env['CONSUMER_ISSUER'] || !process.env['CONSUMER_AUDIENCE']) {
+      console.warn(
+        '[client-db-sync] WARNING: CONSUMER_ISSUER and/or CONSUMER_AUDIENCE are not set. ' +
+          'Consumer tokens will be accepted on signature + expiry alone (no issuer/audience check). ' +
+          'Set both to bind tokens to your IdP and this service.',
+      );
+    }
+  } else {
+    console.warn(
+      '[client-db-sync] CONSUMER_PUBLIC_KEY_JWK not set — Consumer Clients will be refused while ' +
+        'auth is enabled. Set it (base64 JWK/JWKS of your IdP public key) to enable Consumer support.',
+    );
+  }
+
   if (missing.length > 0) {
     console.error(`[client-db-sync] Missing required env vars: ${missing.join(', ')}`);
     console.error('Run `client-db-sync-keygen` to generate PRIVATE_KEY_JWK and PUBLIC_KEY_JWK.');
