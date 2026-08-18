@@ -3,6 +3,18 @@
 All notable changes to `@aikofy/client-db-sync` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 2.1.1
+
+### Fixed
+
+- **`npx @aikofy/client-db-sync-keygen` 404s.** That name is a bin of this package, not a package
+  on the registry. The CLI now accepts `npx @aikofy/client-db-sync keygen`. The README no longer
+  documents the 404 form, or `bun run keygen` as if it existed in consuming apps.
+
+### Changed
+
+- Missing-env and handler errors now print `npx @aikofy/client-db-sync keygen`.
+
 ## 2.1.0
 
 ### Added — first-class embedding

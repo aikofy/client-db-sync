@@ -84,10 +84,15 @@ Consumers are accepted without verification.
 ### 1. Generate keys
 
 ```bash
-npx @aikofy/client-db-sync-keygen
-# or
-bun run keygen   # if installed locally
+npx @aikofy/client-db-sync keygen
+
+# After `npm install @aikofy/client-db-sync` in this project:
+npx client-db-sync-keygen
 ```
+
+There is no package named `@aikofy/client-db-sync-keygen`. `keygen` is a command of
+`@aikofy/client-db-sync`. `bun run keygen` only exists in this repo's `package.json`, not in an
+app that depends on the package.
 
 Copy the output into your `.env` file.
 
@@ -132,7 +137,7 @@ node node_modules/@aikofy/client-db-sync/dist/index.js
 
 ### Runtime: Node or Bun
 
-The server runs on **Node 18+** or **Bun 1.x**. Both are supported. Key generation (`client-db-sync-keygen`) requires `0.1.3` or newer when running under Bun — earlier versions hit a `non-extractable CryptoKey` error because Bun resolves jose's `browser` export, which creates non-extractable keys by default.
+The server runs on **Node 18+** or **Bun 1.x**. Both are supported. Key generation (`npx @aikofy/client-db-sync keygen`) requires `0.1.3` or newer when running under Bun — earlier versions hit a `non-extractable CryptoKey` error because Bun resolves jose's `browser` export, which creates non-extractable keys by default.
 
 If you see that error, upgrade:
 

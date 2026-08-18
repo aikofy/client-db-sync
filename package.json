@@ -1,6 +1,6 @@
 {
   "name": "@aikofy/client-db-sync",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "WebRTC signaling + load-balancing director for @aikofy/client-db: room-based gossip peering, role-aware Consumer Client support, Ed25519 room tokens, and IdP-verified consumer tokens",
   "type": "module",
   "main": "./dist/index.cjs",

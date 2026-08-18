@@ -1,5 +1,41 @@
 import { createServer } from './server.js';
+import { generateKeyPairJwk } from './keys.js';
 import type { ServerConfig } from './types.js';
+
+async function runKeygen(): Promise<void> {
+  const { privateKeyJwk, publicKeyJwk } = await generateKeyPairJwk();
+
+  console.log('\n✓ Ed25519 key pair generated.\n');
+  console.log('Add these to your .env file:\n');
+  console.log(`PRIVATE_KEY_JWK=${privateKeyJwk}`);
+  console.log(`PUBLIC_KEY_JWK=${publicKeyJwk}`);
+  console.log('\nKeep PRIVATE_KEY_JWK secret. PUBLIC_KEY_JWK can be shared with clients.\n');
+}
+
+function printUsage(): void {
+  console.log(`Usage:
+  npx @aikofy/client-db-sync              Start the signaling server
+  npx @aikofy/client-db-sync keygen       Generate PRIVATE_KEY_JWK and PUBLIC_KEY_JWK
+
+After a local install of this package:
+  npx client-db-sync-keygen
+
+Required env when starting the server (unless AUTH_DISABLED=true):
+  ADMIN_SECRET, PRIVATE_KEY_JWK, PUBLIC_KEY_JWK
+`);
+}
+
+const command = process.argv[2];
+
+if (command === 'keygen' || command === '--keygen') {
+  await runKeygen();
+  process.exit(0);
+}
+
+if (command === 'help' || command === '--help' || command === '-h') {
+  printUsage();
+  process.exit(0);
+}
 
 function loadConfig(): ServerConfig {
   const authEnabled = process.env['AUTH_DISABLED'] !== 'true';
@@ -52,7 +88,7 @@ function loadConfig(): ServerConfig {
 
   if (missing.length > 0) {
     console.error(`[client-db-sync] Missing required env vars: ${missing.join(', ')}`);
-    console.error('Run `client-db-sync-keygen` to generate PRIVATE_KEY_JWK and PUBLIC_KEY_JWK.');
+    console.error('Run `npx @aikofy/client-db-sync keygen` to generate PRIVATE_KEY_JWK and PUBLIC_KEY_JWK.');
     console.error('Or set AUTH_DISABLED=true for local development.');
     process.exit(1);
   }

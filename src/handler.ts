@@ -32,7 +32,7 @@ export async function createSignalingHandler(
     if (!config.privateKeyJwk || !config.publicKeyJwk) {
       throw new Error(
         'createSignalingHandler: privateKeyJwk and publicKeyJwk are required when authEnabled is true. ' +
-          'Run `client-db-sync-keygen` to generate them, or set authEnabled: false for local development.',
+          'Run `npx @aikofy/client-db-sync keygen` to generate them, or set authEnabled: false for local development.',
       );
     }
     const keys = await loadKeyPairFromEnv(config.privateKeyJwk, config.publicKeyJwk);
