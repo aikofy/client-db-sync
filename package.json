@@ -1,6 +1,6 @@
 {
   "name": "@aikofy/client-db-sync",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "WebRTC signaling + load-balancing director for @aikofy/client-db: room-based gossip peering, role-aware Consumer Client support, Ed25519 room tokens, and IdP-verified consumer tokens",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -11,6 +11,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./embed": {
+      "types": "./dist/embed.d.ts",
+      "import": "./dist/embed.js",
+      "require": "./dist/embed.cjs"
     }
   },
   "bin": {
@@ -32,11 +37,13 @@
     "@fastify/websocket": "^11.0.0",
     "fastify": "^5.0.0",
     "jose": "^5.0.0",
-    "uuid": "^14.0.0"
+    "uuid": "^14.0.0",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/uuid": "^11.0.0",
+    "@types/ws": "^8.18.1",
     "tsup": "^8.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.5.0",

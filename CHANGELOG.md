@@ -3,6 +3,45 @@
 All notable changes to `@aikofy/client-db-sync` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 2.1.0
+
+### Added — first-class embedding
+
+The signaling core is now usable without the standalone HTTP server, so it can share a port with
+an app you already run (socket.io, Express, Hono, …). See the README "Embedded" section.
+
+- **`createSignalingHandler(config)`** — framework-agnostic core built on `ws` with
+  `noServer: true`. Owns the registry, the room-token keys and the WebSocket upgrade, and nothing
+  else. Returns `handleUpgrade` / `handleConnection` / `issueToken` / `publicJwk` / `stats` /
+  `registry` / `close`.
+- **`@aikofy/client-db-sync/embed` subpath export** — the same core with no Fastify in the module
+  graph (`ws`, `jose`, `uuid` only).
+- **`handler.issueToken()`** mints room tokens in-process. An embedding host already holds the
+  signing key, so it no longer needs `POST /token` or an `ADMIN_SECRET` round-trip to itself.
+- **`handler.stats()`** → `{ auth, peers, rooms }`, so an embedded deployment can report peer
+  counts on its own health endpoint. Previously `registry.connectedCount` was only reachable
+  through this package's `/health` route.
+- **`SignalingRegistry.roomCount`** getter.
+- **`registerTimeoutMs`** is now settable through `ServerConfig` (it was already supported by
+  `SignalingRegistry`, but `createServer` never passed it through).
+
+### Fixed
+
+- **A `register` message sent in the client's `onopen` handler could be dropped.** Connections are
+  accepted before the room token is verified, and the message listener was only attached after
+  that `await` resolved — so a client fast enough to register in the same tick lost its
+  registration and then sat in the room unfinalized until the 10 s register timeout closed it.
+  Messages arriving during verification are now buffered and replayed. Most visible under an
+  embedded handler or a loaded event loop, where the verification gap is wider.
+
+### Changed
+
+- `createServer` is now a thin wrapper over `createSignalingHandler`; connection handling has one
+  implementation, so embedded and standalone peers are guaranteed to see identical frames. The
+  HTTP surface, WS route, close codes and payloads are unchanged.
+- Internal types reference `ws`'s `WebSocket` rather than re-exporting it from
+  `@fastify/websocket`. `ws` is now a direct dependency (it was already present transitively).
+
 ## 2.0.0
 
 ### Added — role-aware Consumer Client support

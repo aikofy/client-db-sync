@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
-import type { WebSocket } from '@fastify/websocket';
+import type { WebSocket } from 'ws';
 import { SignalingRegistry } from './signaling.js';
 import { makeConsumerVerifier } from './auth.js';
 

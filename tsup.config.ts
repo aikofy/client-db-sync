@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig([
   // Library (ESM + CJS for programmatic use)
   {
-    entry: ['src/index.ts'],
+    entry: ['src/index.ts', 'src/embed.ts'],
     format: ['esm', 'cjs'],
     dts: true,
     sourcemap: true,

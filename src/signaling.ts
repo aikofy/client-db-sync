@@ -1,4 +1,4 @@
-import type { WebSocket } from '@fastify/websocket';
+import type { WebSocket } from 'ws';
 import type { ClientRole, SignalingMessage } from './types.js';
 
 interface Member {
@@ -150,6 +150,10 @@ export class SignalingRegistry {
     if (sender.role === 'consumer' && target.role === 'consumer') return;
 
     this._send(target.socket, { ...msg, from, fromRole: sender.role });
+  }
+
+  get roomCount(): number {
+    return this.rooms.size;
   }
 
   get connectedCount(): number {

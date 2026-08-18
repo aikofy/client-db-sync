@@ -312,16 +312,22 @@ const db = await createDB({
 
 ## Programmatic API
 
-Use as a library inside your own server:
+Two entrypoints, depending on whether you want your own HTTP server.
+
+### Standalone — `createServer`
+
+Runs the whole thing: `/health`, `/public-key`, `POST /token` and `WS /signal` on a Fastify
+instance you listen on yourself. This is what the CLI uses.
 
 ```typescript
-import { createServer, generateKeyPairJwk, issueToken } from '@aikofy/client-db-sync';
+import { createServer, generateKeyPairJwk } from '@aikofy/client-db-sync';
 
 // Generate keys once and store them in env/secrets manager
 const { privateKeyJwk, publicKeyJwk } = await generateKeyPairJwk();
 
 const app = await createServer({
   port: 8080,
+  authEnabled: true,
   adminSecret: 'my-secret',
   privateKeyJwk,
   publicKeyJwk,
@@ -329,6 +335,81 @@ const app = await createServer({
 
 await app.listen({ port: 8080, host: '0.0.0.0' });
 ```
+
+### Embedded — `createSignalingHandler`
+
+Mounts signaling on an HTTP server you already have, **sharing its port** with whatever else is
+running there (socket.io, Express, Hono, …). No second service, no second port, no admin secret:
+the process holds the signing key, so it mints tokens with a direct call.
+
+Import from `@aikofy/client-db-sync/embed` to keep Fastify out of your dependency graph — that
+entrypoint pulls in only `ws`, `jose` and `uuid`.
+
+```typescript
+import { createServer as createHttp } from 'node:http';
+import { Server as IOServer } from 'socket.io';
+import { createSignalingHandler } from '@aikofy/client-db-sync/embed';
+
+const signaling = await createSignalingHandler({
+  authEnabled: true,
+  privateKeyJwk,
+  publicKeyJwk,
+  // path: '/signal' by default; pass null to claim every upgrade you hand it
+});
+
+const httpServer = createHttp(myApp);
+
+// Share the port with socket.io. `destroyUpgrade: false` stops engine.io from
+// reaping upgrades on paths it does not own — see the note below.
+const io = new IOServer(httpServer, { destroyUpgrade: false });
+
+httpServer.on('upgrade', (req, socket, head) => {
+  if (signaling.handleUpgrade(req, socket, head)) return;   // claimed /signal
+  if (!(req.url ?? '').startsWith('/socket.io/')) socket.destroy();
+});
+
+httpServer.listen(3001);
+```
+
+Mint room tokens for your own authenticated users — no HTTP hop, no `ADMIN_SECRET`:
+
+```typescript
+const { token, expiresAt, subject } = await signaling.issueToken({
+  ttl: '24h',
+  subject: `mmgr-user-${userId}`,   // MUST equal the client's room name
+});
+```
+
+Expose signaling health on your existing health endpoint:
+
+```typescript
+app.get('/healthz', () => ({ ...myStats, signaling: signaling.stats() }));
+// { auth: 'enabled', peers: 12, rooms: 5 }
+```
+
+#### Two rules when embedding
+
+1. **Call `handleUpgrade` synchronously** from the `upgrade` listener. It takes the socket over
+   immediately, so no client bytes are lost; any `await` before it and the handshake dies. All
+   async work (token verification) already happens after the upgrade, inside the handler.
+2. **If socket.io shares the port, pass `destroyUpgrade: false`.** By default engine.io arms a 1 s
+   timer on every upgrade for a path it does not own and destroys the socket. Your own fallback
+   branch (above) should destroy unknown paths instead.
+
+`handleUpgrade` returns `false` without touching the socket when the path is not this handler's,
+so your routing stays in charge.
+
+### Full embedded surface
+
+| Member | Purpose |
+|---|---|
+| `handleUpgrade(req, socket, head)` | Claim a raw upgrade. Sync-safe. Returns `false` on a path mismatch. |
+| `handleConnection(ws, requestUrl)` | Drive an already-upgraded socket (hosts that handshake themselves). |
+| `issueToken({ ttl, subject })` | Mint a room token locally. Throws when `authEnabled` is false. |
+| `publicJwk()` | The public JWK, for your own `/public-key`. `null` when auth is off. |
+| `stats()` | `{ auth, peers, rooms }`. |
+| `registry` | The underlying `SignalingRegistry`. |
+| `close()` | Close all sockets and the WebSocket server. |
 
 ---
 
@@ -351,8 +432,11 @@ src/
   keys.ts        # Ed25519 key pair loading and generation
   auth.ts        # JWT issuance and verification
   signaling.ts   # Room-keyed peer registry + message routing
-  server.ts      # Fastify server + routes
-  index.ts       # CLI entry point + programmatic exports
+  handler.ts     # Framework-agnostic signaling core (upgrade + connection logic)
+  server.ts      # Standalone Fastify server + HTTP routes (wraps handler.ts)
+  cli.ts         # CLI entry point (bin: client-db-sync)
+  index.ts       # Programmatic exports
+  embed.ts       # Fastify-free exports (@aikofy/client-db-sync/embed)
 scripts/
   generate-keys.ts  # Key generation helper (bin: client-db-sync-keygen)
 ```
