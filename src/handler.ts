@@ -246,8 +246,25 @@ export async function createSignalingHandler(
     },
 
     async close(): Promise<void> {
-      for (const client of wss.clients) client.close(1001, 'server shutting down');
-      await new Promise<void>((resolve) => wss.close(() => resolve()));
+      // Terminate rather than close+wait: a client that never ACKs the close
+      // frame would otherwise leave wss.close()'s callback unfired and hang
+      // the host's shutdown (seen under bun:test's 5 s hook timeout).
+      for (const client of [...wss.clients]) {
+        try {
+          client.terminate();
+        } catch {
+          /* already gone */
+        }
+      }
+      await new Promise<void>((resolve) => {
+        // bun's `ws` close callback is not always invoked after terminate();
+        // a bounded wait keeps an embedding host's SIGTERM from stalling.
+        const timer = setTimeout(resolve, 250);
+        wss.close(() => {
+          clearTimeout(timer);
+          resolve();
+        });
+      });
     },
   };
 }

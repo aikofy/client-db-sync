@@ -186,4 +186,11 @@ describe('createSignalingHandler — mounted on a foreign http.Server', () => {
     p.ws.send(JSON.stringify({ type: 'register', nodeId: 'a' }));
     expect(await p.next()).toMatchObject({ type: 'peer-list' });
   });
+
+  it('close() returns even when a socket is still open', async () => {
+    const { handler, port } = await mount();
+    const token = await tokenFor(handler, 'room-close');
+    await connect(port, `?token=${token}&nodeId=linger`);
+    await expect(handler.close()).resolves.toBeUndefined();
+  });
 });

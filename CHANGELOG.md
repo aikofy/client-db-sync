@@ -33,6 +33,9 @@ an app you already run (socket.io, Express, Hono, …). See the README "Embedded
   registration and then sat in the room unfinalized until the 10 s register timeout closed it.
   Messages arriving during verification are now buffered and replayed. Most visible under an
   embedded handler or a loaded event loop, where the verification gap is wider.
+- **`handler.close()` could hang** if a client never ACKed the close frame (`wss.close()` waits
+  for every socket). Shutdown now `terminate()`s remaining clients so an embedding host's
+  `SIGTERM` cannot stall on a half-open `/signal` socket.
 
 ### Changed
 
